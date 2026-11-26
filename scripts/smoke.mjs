@@ -4,9 +4,10 @@ import puppeteer from "puppeteer-core";
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 
 const root = new URL("../", import.meta.url).pathname;
-const out = `${root}.smoke/`;
+const screenshotsOnly = process.argv[2] === "--screenshots";
+const out = `${root}${screenshotsOnly ? ".smoke/screenshots" : ".smoke"}/`;
 const harness = `${out}ext/`;
-const only = process.argv.slice(2);
+const only = process.argv.slice(screenshotsOnly ? 3 : 2);
 rmSync(out, { recursive: true, force: true });
 cpSync(`${root}ext`, harness, { recursive: true });
 const manifest = JSON.parse(readFileSync(`${harness}manifest.json`, "utf8"));
@@ -55,32 +56,34 @@ try {
     console.log("picker still open after pick:", await frame.$eval(".rule .cascade", (d) => d.open));
   }
 
-  const video = readFileSync(`${root}design/test.mp4`).toString("base64");
-  const { TARGETS } = await frame.evaluate(async () => ({ TARGETS: (await import("./config.js")).TARGETS }));
-  const rows = [];
-  for (const id of only.length ? only : Object.keys(TARGETS)) {
-    for (const kind of ["video", "image"]) {
-      const row = await frame.evaluate(async (id, kind, video) => {
-        const { convert } = await import("./convert.js");
-        const { DEFAULT_SETTINGS } = await import("./config.js");
-        const blob = kind === "video"
-          ? new Blob([Uint8Array.from(atob(video), (c) => c.charCodeAt(0))], { type: "video/mp4" })
-          : await fetch("./assets/sample.jpg").then((r) => r.blob());
-        const start = performance.now();
-        const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timed out after 120 s")), 120000));
-        try {
-          const result = await Promise.race([convert({ blob, kind, time: 1 }, id, DEFAULT_SETTINGS), timeout]);
-          const head = new TextDecoder("latin1").decode(await result.slice(0, 12).arrayBuffer()).replace(/[^\x20-\x7e]/g, ".");
-          return { kind, id, kb: Math.round(result.size / 1024), ms: Math.round(performance.now() - start), head };
-        } catch (e) {
-          return { kind, id, error: String(e?.message || e) };
-        }
-      }, id, kind, video);
-      console.log(JSON.stringify(row));
-      rows.push(row);
+  if (!screenshotsOnly) {
+    const video = readFileSync(`${root}design/test.mp4`).toString("base64");
+    const { TARGETS } = await frame.evaluate(async () => ({ TARGETS: (await import("./config.js")).TARGETS }));
+    const rows = [];
+    for (const id of only.length ? only : Object.keys(TARGETS)) {
+      for (const kind of ["video", "image"]) {
+        const row = await frame.evaluate(async (id, kind, video) => {
+          const { convert } = await import("./convert.js");
+          const { DEFAULT_SETTINGS } = await import("./config.js");
+          const blob = kind === "video"
+            ? new Blob([Uint8Array.from(atob(video), (c) => c.charCodeAt(0))], { type: "video/mp4" })
+            : await fetch("./assets/sample.jpg").then((r) => r.blob());
+          const start = performance.now();
+          const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timed out after 120 s")), 120000));
+          try {
+            const result = await Promise.race([convert({ blob, kind, time: 1 }, id, DEFAULT_SETTINGS), timeout]);
+            const head = new TextDecoder("latin1").decode(await result.slice(0, 12).arrayBuffer()).replace(/[^\x20-\x7e]/g, ".");
+            return { kind, id, kb: Math.round(result.size / 1024), ms: Math.round(performance.now() - start), head };
+          } catch (e) {
+            return { kind, id, error: String(e?.message || e) };
+          }
+        }, id, kind, video);
+        console.log(JSON.stringify(row));
+        rows.push(row);
+      }
     }
+    writeFileSync(`${out}results.json`, JSON.stringify(rows, null, 2));
   }
-  writeFileSync(`${out}results.json`, JSON.stringify(rows, null, 2));
 
   const popup = await mount("popup.html", 360, 440);
   await popup.frame.waitForSelector(".mini-rules li");
