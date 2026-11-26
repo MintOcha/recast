@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Recast",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Right-click any image or video and save it as WebP, animated WebP, AVIF, GIF, MP4 and more. Your rules, your quality, converted on your computer.",
   "icons": { "48": "icons/icon.svg", "96": "icons/icon.svg", "128": "icons/icon.svg" },
   "browser_specific_settings": {

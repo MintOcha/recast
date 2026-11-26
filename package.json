@@ -1,6 +1,6 @@
 {
   "name": "recast",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "build": "node build.mjs",
     "pack": "node build.mjs --pack",
