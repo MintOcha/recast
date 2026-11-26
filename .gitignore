@@ -1,0 +1,7 @@
+node_modules/
+.browser/
+.smoke/
+.profile/
+dist/
+ext/vendor/
+ext/icons/

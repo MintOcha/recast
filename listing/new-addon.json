@@ -1,0 +1,8 @@
+{
+  "categories": { "firefox": ["photos-music-videos", "download-management"] },
+  "name": { "en-US": "Recast" },
+  "summary": { "en-US": "Right-click any image or video and save it as animated WebP, WebP, AVIF, GIF, MP4 and more. You set the rules and the quality. Everything converts on your computer." },
+  "description": { "en-US": "Recast adds a Save as menu to images and videos on any website.\n\n<b>Your rules</b>\nPick what to convert from and what to convert to: All videos → Animated WebP, PNG images → AVIF, and so on. Only the rules that match the file you right-clicked appear in the menu.\n\n<b>Formats</b>\nImages: WebP, AVIF, JPEG, PNG\nAnimated: Animated WebP, GIF\nVideo: MP4 (H.264)\n\n<b>Quality you can see</b>\nEach format has a quality slider with a live before/after preview and the resulting file size. The ring next to each menu item shows the quality at a glance.\n\n<b>Private</b>\nConversion runs inside Firefox using bundled FFmpeg and AVIF encoders. Nothing is uploaded and no data is collected.\n\n<b>Notes</b>\n• Animated WebP and GIF start from where the video is paused and use the clip length you choose (10 s by default). Saved animations have no sound.\n• MP4 output uses Opus audio.\n• Streaming videos without a direct file are recorded while they play. Protected (DRM) videos can't be saved." },
+  "homepage": null,
+  "version": { "license": "GPL-3.0-only" }
+}

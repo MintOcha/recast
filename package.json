@@ -1,0 +1,23 @@
+{
+  "name": "recast",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node build.mjs",
+    "pack": "node build.mjs --pack",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "license": "GPL-3.0-only",
+  "type": "commonjs",
+  "dependencies": {
+    "@ffmpeg/core": "^0.12.10",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
+    "@jsquash/avif": "^2.1.1",
+    "web-ext": "^10.8.0"
+  },
+  "devDependencies": {
+    "@mdn/browser-compat-data": "^8.1.10",
+    "puppeteer-core": "^25.18.1"
+  },
+  "private": true
+}

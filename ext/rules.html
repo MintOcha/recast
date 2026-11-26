@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Recast rules</title>
+  <link rel="icon" href="icons/icon.svg">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="rules.js"></script>
+</head>
+<body class="page">
+  <main>
+    <header class="masthead">
+      <img src="icons/icon.svg" alt="" class="logo">
+      <div>
+        <h1>Recast</h1>
+        <p class="lede">Right-click an image or video. Each rule below adds a <em>Save as</em> option for the files it matches.</p>
+      </div>
+    </header>
+
+    <section aria-labelledby="rules-title">
+      <h2 id="rules-title">Rules</h2>
+      <ol id="rules" class="rules"></ol>
+      <button type="button" id="add-rule" class="ghost">+ Add rule</button>
+    </section>
+
+    <section aria-labelledby="quality-title">
+      <h2 id="quality-title">Quality</h2>
+      <p class="hint">Drag across a preview to compare it with the original.</p>
+      <ul id="quality" class="cards"></ul>
+    </section>
+
+    <section aria-labelledby="clip-title">
+      <h2 id="clip-title">Clips and saving</h2>
+      <div class="fields">
+        <label>Clip length <span class="unit"><input type="number" id="seconds" inputmode="numeric"> s</span></label>
+        <label>Frame rate <span class="unit"><input type="number" id="fps" inputmode="numeric"> fps</span></label>
+        <label>Widest size <span class="unit"><input type="number" id="max-width" inputmode="numeric"> px</span></label>
+        <label class="wide">Folder in Downloads <input type="text" id="folder" placeholder="Leave empty to save straight into Downloads"></label>
+      </div>
+      <p class="hint">Animated WebP and GIF start where the video is paused. MP4 converts the whole video.</p>
+      <button type="button" id="reset" class="ghost danger">Restore default rules</button>
+    </section>
+  </main>
+</body>
+</html>

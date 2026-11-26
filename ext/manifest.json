@@ -1,0 +1,23 @@
+{
+  "manifest_version": 2,
+  "name": "Recast",
+  "version": "1.0.0",
+  "description": "Right-click any image or video and save it as WebP, animated WebP, AVIF, GIF, MP4 and more. Your rules, your quality, converted on your computer.",
+  "icons": { "48": "icons/icon.svg", "96": "icons/icon.svg", "128": "icons/icon.svg" },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "recast@mintocha.stuff",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": { "required": ["none"] }
+    }
+  },
+  "permissions": ["menus", "downloads", "storage", "notifications", "<all_urls>"],
+  "background": { "page": "background.html" },
+  "browser_action": {
+    "default_title": "Recast",
+    "default_icon": "icons/icon.svg",
+    "default_popup": "popup.html"
+  },
+  "options_ui": { "page": "rules.html", "open_in_tab": true },
+  "content_security_policy": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+}
