@@ -9,8 +9,8 @@ Firefox extension: right-click an image or video, save it in another format acco
 
 ## Screenshots
 
-![Conversion rules and side-by-side quality previews](design/screenshots/rules.png)
-![Selecting which source formats match a rule](design/screenshots/picker.png)
+![Conversion rules and saving settings](design/screenshots/rules.png)
+![Choosing an output format and comparing it with the original](design/screenshots/picker.png)
 ![Recast toolbar popup with active rules](design/screenshots/popup.png)
 
 ## Test locally

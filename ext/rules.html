@@ -12,22 +12,15 @@
   <main>
     <header class="masthead">
       <img src="icons/icon.svg" alt="" class="logo">
-      <div>
-        <h1>Recast</h1>
-        <p class="lede">Right-click an image or video. Each rule below adds a <em>Save as</em> option for the files it matches.</p>
-      </div>
+      <span>Recast</span>
     </header>
+    <h1>Conversion rules</h1>
+    <p class="lede">Each rule adds a <em>Save as</em> option when you right-click a matching image or video.</p>
 
     <section aria-labelledby="rules-title">
-      <h2 id="rules-title">Rules</h2>
+      <h2 id="rules-title">When a file matches</h2>
       <ol id="rules" class="rules"></ol>
       <button type="button" id="add-rule" class="ghost">+ Add rule</button>
-    </section>
-
-    <section aria-labelledby="quality-title">
-      <h2 id="quality-title">Quality</h2>
-      <p class="hint">Drag across a preview to compare it with the original.</p>
-      <ul id="quality" class="cards"></ul>
     </section>
 
     <section aria-labelledby="clip-title">
@@ -42,5 +35,16 @@
       <button type="button" id="reset" class="ghost danger">Restore default rules</button>
     </section>
   </main>
+  <dialog id="output-picker" aria-labelledby="output-title">
+    <header class="picker-head">
+      <h2 id="output-title">Choose output format</h2>
+      <button type="button" id="close-output" class="remove" aria-label="Close format picker">✕</button>
+    </header>
+    <div class="picker-body">
+      <fieldset id="formats"><legend>Formats</legend></fieldset>
+      <div id="comparison"></div>
+    </div>
+    <footer class="picker-footer"><button type="button" id="apply-output" class="primary">Use format</button></footer>
+  </dialog>
 </body>
 </html>

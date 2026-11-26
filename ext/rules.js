@@ -1,13 +1,13 @@
-import { TARGETS, LIMITS, anySource } from "./config.js";
+import { TARGETS, TARGET_GROUPS, LIMITS, anySource } from "./config.js";
 import { loadSettings, saveSettings } from "./settings.js";
 import { convert } from "./convert.js";
-import { h, ring, sourcePicker, targetPicker, formatBytes } from "./ui.js";
+import { h, ring, sourcePicker, targetSummary, formatBytes } from "./ui.js";
 
-let settings = await loadSettings();
-const persist = () => saveSettings(settings).then((clean) => (settings = clean));
+const settings = await loadSettings();
+const persist = () => saveSettings(settings);
 
 const sampleUrl = new URL("./assets/sample.jpg", import.meta.url).href;
-const sample = fetch(sampleUrl).then((r) => r.blob());
+let sample;
 
 // ---- Rules -----------------------------------------------------------------------
 
@@ -21,10 +21,9 @@ function renderRules() {
           if (rule.from.length) persist();
         }),
         h("span", { class: "arrow", "aria-label": "converts to" }, "→"),
-        targetPicker(rule, settings.quality, () => {
-          persist();
-          renderQuality();
-        }),
+        h("button", { type: "button", class: "cascade-button output", "aria-haspopup": "dialog",
+          onclick: (event) => openOutput(rule, event.currentTarget),
+        }, outputLabel(rule)),
         h("button", {
           type: "button",
           class: "remove",
@@ -33,7 +32,6 @@ function renderRules() {
             settings.rules.splice(index, 1);
             persist();
             renderRules();
-            renderQuality();
           },
         }, "✕"),
       ),
@@ -45,14 +43,58 @@ document.getElementById("add-rule").addEventListener("click", () => {
   settings.rules.push({ from: [anySource("image")], to: "webp" });
   persist();
   renderRules();
-  renderQuality();
   ruleList.lastElementChild.querySelector("summary").focus();
 });
 
-// ---- Quality cards with split preview ------------------------------------------------
+const picker = document.getElementById("output-picker");
+const comparison = document.getElementById("comparison");
+const formats = document.getElementById("formats");
+const apply = document.getElementById("apply-output");
+let activeRule, candidate, opener, disposePreview;
 
-const qualityList = document.getElementById("quality");
-const previews = new Map();
+function outputLabel(rule) {
+  return [ring(settings.quality[rule.to], !TARGETS[rule.to].quality), h("span", {}, targetSummary(rule.to, settings.quality))];
+}
+
+function showCandidate(id) {
+  if (candidate === id) return;
+  candidate = id;
+  disposePreview?.();
+  disposePreview = showComparison(id);
+}
+
+for (const group of TARGET_GROUPS) {
+  formats.append(h("h3", {}, group.label), ...group.formats.map(({ id, label }) =>
+    h("label", {}, h("input", { type: "radio", name: "format", value: id,
+      onchange: () => showCandidate(id),
+    }), h("span", {}, label))));
+}
+
+function openOutput(rule, button) {
+  activeRule = rule;
+  opener = button;
+  const radio = Array.from(formats.querySelectorAll("input")).find((input) => input.value === rule.to);
+  radio.checked = true;
+  picker.showModal();
+  radio.focus();
+  showCandidate(rule.to);
+}
+
+apply.addEventListener("click", () => {
+  activeRule.to = candidate;
+  persist();
+  picker.close();
+});
+document.getElementById("close-output").addEventListener("click", () => picker.close());
+picker.addEventListener("close", () => {
+  disposePreview?.();
+  disposePreview = undefined;
+  comparison.replaceChildren();
+  candidate = undefined;
+  ruleList.querySelectorAll(".output").forEach((button, index) =>
+    button.replaceChildren(...outputLabel(settings.rules[index])));
+  opener.focus();
+});
 const PREVIEW_SAMPLE = { seconds: 1, fps: 1, maxWidth: 960 };
 
 function sizeChange(before, after) {
@@ -60,16 +102,7 @@ function sizeChange(before, after) {
   return after <= before ? `${percent}% smaller` : `${percent}% larger`;
 }
 
-function previewFor(id, quality) {
-  const key = `${id}@${quality}`;
-  if (!previews.has(key)) {
-    previews.set(key, sample.then((blob) =>
-      convert({ blob, kind: "image" }, id, { quality: { [id]: quality }, animation: PREVIEW_SAMPLE })));
-  }
-  return previews.get(key);
-}
-
-function qualityCard(id) {
+function showComparison(id) {
   const target = TARGETS[id];
   const value = h("output", { class: "value" }, target.quality ? `${settings.quality[id]}%` : "Lossless");
   const ringSlot = h("span", { class: "ring-slot" }, ring(settings.quality[id], !target.quality));
@@ -91,13 +124,16 @@ function qualityCard(id) {
 
   let shown;
   let token = 0;
+  let wait;
   async function refresh() {
     const quality = settings.quality[id];
     const mine = ++token;
     stage.classList.add("busy");
     try {
-      const [original, blob] = await Promise.all([sample, previewFor(id, quality)]);
-      if (mine !== token) return;
+      const original = await (sample ??= fetch(sampleUrl).then((response) => response.blob()));
+      if (mine !== token || !picker.open) return;
+      const blob = await convert({ blob: original, kind: "image" }, id, { quality: { [id]: quality }, animation: PREVIEW_SAMPLE });
+      if (mine !== token || !picker.open) return;
       if (shown) URL.revokeObjectURL(shown);
       shown = URL.createObjectURL(blob);
       result.src = shown;
@@ -111,43 +147,31 @@ function qualityCard(id) {
     }
   }
 
-  let wait;
   const slider = target.quality && h("input", {
     type: "range", class: "quality", min: LIMITS.quality.min, max: LIMITS.quality.max, value: settings.quality[id],
     "aria-label": `${target.label} quality`,
     oninput: (e) => {
       settings.quality[id] = Number(e.target.value);
       value.textContent = `${settings.quality[id]}%`;
-      e.target.style.setProperty("--fill", `${settings.quality[id]}%`);
       ringSlot.replaceChildren(ring(settings.quality[id]));
       clearTimeout(wait);
-      wait = setTimeout(() => {
-        persist();
-        refresh();
-        renderRuleLabels();
-      }, 180);
+      ++token;
+      wait = setTimeout(refresh, 180);
     },
+    onchange: persist,
   });
-  if (slider) slider.style.setProperty("--fill", `${settings.quality[id]}%`);
 
-  refresh();
-  return h("li", { class: "card" },
-    h("header", {}, ringSlot, h("h3", {}, target.label), value),
-    slider,
-    stage,
-    size,
+  comparison.replaceChildren(
+    h("header", {}, ringSlot, h("h3", {}, target.label), value), slider, stage, size,
   );
+  refresh();
+  return () => {
+    ++token;
+    clearTimeout(wait);
+    if (shown) URL.revokeObjectURL(shown);
+  };
 }
 
-function renderQuality() {
-  const used = [...new Set(settings.rules.map((r) => r.to))];
-  qualityList.replaceChildren(...used.map(qualityCard));
-}
-
-/** Updates rule buttons in place after a quality change, without closing open pickers. */
-function renderRuleLabels() {
-  if (!document.querySelector(".cascade[open]")) renderRules();
-}
 
 // ---- Clip and folder --------------------------------------------------------------------
 
@@ -156,8 +180,8 @@ function bindNumber(id, key) {
   Object.assign(input, { min: LIMITS[key].min, max: LIMITS[key].max, value: settings.animation[key] });
   input.addEventListener("change", async () => {
     settings.animation[key] = Number(input.value);
-    await persist();
-    input.value = settings.animation[key];
+    const clean = await persist();
+    input.value = settings.animation[key] = clean.animation[key];
   });
 }
 bindNumber("seconds", "seconds");
@@ -168,8 +192,8 @@ const folder = document.getElementById("folder");
 folder.value = settings.folder;
 folder.addEventListener("change", async () => {
   settings.folder = folder.value.trim();
-  await persist();
-  folder.value = settings.folder;
+  const clean = await persist();
+  folder.value = settings.folder = clean.folder;
 });
 
 document.getElementById("reset").addEventListener("click", async () => {
@@ -178,4 +202,3 @@ document.getElementById("reset").addEventListener("click", async () => {
 });
 
 renderRules();
-renderQuality();

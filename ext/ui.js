@@ -1,4 +1,4 @@
-import { SOURCE_GROUPS, TARGET_GROUPS, TARGETS, anySource, sourceLabel, ringStep } from "./config.js";
+import { SOURCE_GROUPS, TARGETS, anySource, sourceLabel, ringStep } from "./config.js";
 
 export function h(tag, props = {}, ...children) {
   const el = document.createElement(tag);
@@ -32,11 +32,7 @@ document.addEventListener("click", (e) => {
 });
 document.addEventListener("keydown", (e) => e.key === "Escape" && closeAll());
 
-/**
- * A two-level picker: groups on the left (Image ›, Video ›…), their formats fly out on the right.
- * `multiple` lets a rule match several sources; picking "All …" replaces that group's single formats.
- */
-function cascade({ groups, label, isChecked, onPick, multiple }) {
+function cascade({ groups, label, isChecked, onPick }) {
   const summary = h("summary", { class: "cascade-button" }, label());
   const details = h("details", { class: "cascade" }, summary);
   const groupList = h("ul", { class: "cascade-groups", role: "menu" });
@@ -48,15 +44,14 @@ function cascade({ groups, label, isChecked, onPick, multiple }) {
         h("li", {},
           h("button", {
             type: "button",
-            role: multiple ? "menuitemcheckbox" : "menuitemradio",
+            role: "menuitemcheckbox",
             "aria-checked": `${isChecked(item.id)}`,
             class: item.all ? "all" : "",
             onclick: () => {
               onPick(item.id);
               summary.replaceChildren(label());
               markGroups();
-              if (multiple) renderItems(group);
-              else details.removeAttribute("open");
+              renderItems(group);
             },
           }, item.label),
         ),
@@ -98,12 +93,10 @@ const SOURCE_TREE = SOURCE_GROUPS.map((g) => ({
   label: g.label,
   items: [{ id: anySource(g.kind), label: g.allLabel, all: true }, ...g.formats.map((f) => ({ id: `${g.kind}:${f.id}`, label: f.label }))],
 }));
-const TARGET_TREE = TARGET_GROUPS.map((g) => ({ label: g.label, items: g.formats.map((f) => ({ id: f.id, label: f.label })) }));
 
 export function sourcePicker(rule, onChange) {
   return cascade({
     groups: SOURCE_TREE,
-    multiple: true,
     label: () => sourceSummary(rule.from) || "Choose files",
     isChecked: (id) => rule.from.includes(id),
     onPick: (id) => {
@@ -112,18 +105,6 @@ export function sourcePicker(rule, onChange) {
       if (rule.from.includes(id)) rule.from = rule.from.filter((s) => s !== id);
       else if (id === anySource(kind)) rule.from = [...rule.from.filter((s) => !sameKind(s)), id];
       else rule.from = [...rule.from.filter((s) => s !== anySource(kind)), id];
-      onChange();
-    },
-  });
-}
-
-export function targetPicker(rule, quality, onChange) {
-  return cascade({
-    groups: TARGET_TREE,
-    label: () => [ring(quality[rule.to], !TARGETS[rule.to].quality), targetSummary(rule.to, quality)],
-    isChecked: (id) => rule.to === id,
-    onPick: (id) => {
-      rule.to = id;
       onChange();
     },
   });

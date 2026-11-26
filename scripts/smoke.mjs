@@ -42,18 +42,30 @@ try {
   await browser.installExtension(harness);
   await new Promise((r) => setTimeout(r, 1500));
 
-  const { page, frame } = await mount("rules.html", 1180, 2200);
+  const popup = await mount("popup.html", 360, 440);
+  await popup.frame.waitForSelector(".mini-rules li");
+  await popup.page.screenshot({ path: `${out}popup.png` });
+  const { page, frame } = await mount("rules.html", 1180, 1024);
   if (!only.length) {
-    await frame.waitForSelector(".card .size");
-    await frame.waitForFunction(() => [...document.querySelectorAll(".size")].every((s) => !s.textContent.startsWith("Rendering")), { timeout: 180000 });
-    console.log(await frame.$$eval(".card", (cards) => cards.map((c) => `${c.querySelector("h3").textContent}: ${c.querySelector(".size").textContent}`).join("\n")));
+    const comparison = '[aria-label="Compare original and result"]';
+    if (await frame.$(comparison)) throw new Error("Comparison appeared before choosing a format");
     await page.screenshot({ path: `${out}rules.png` });
 
-    await frame.click(".rule summary");
-    await frame.hover(".cascade[open] .cascade-groups li:nth-child(1) button");
-    await frame.click(".cascade[open] .cascade-items li:nth-child(2) button");
-    await page.screenshot({ path: `${out}picker.png`, clip: { x: 0, y: 0, width: 1180, height: 700 } });
-    console.log("picker still open after pick:", await frame.$eval(".rule .cascade", (d) => d.open));
+    await frame.click(".rule:nth-child(4) .output");
+    await frame.waitForFunction(() => document.querySelector("#comparison .size")?.textContent.includes("→"));
+    await page.screenshot({ path: `${out}picker.png` });
+    await frame.click('#formats [value="jpeg"]');
+    await frame.waitForSelector('#comparison [alt="JPEG result"][src]');
+    await page.keyboard.press("Escape");
+    await frame.waitForFunction((selector) => !document.querySelector(selector), {}, comparison);
+    if (!(await frame.$eval(".rule:nth-child(4) .output", (button) => button.textContent.includes("WebP")))) {
+      throw new Error("Closing the format chooser changed the rule");
+    }
+    await frame.click(".rule:nth-child(4) .output");
+    await frame.click('#formats [value="jpeg"]');
+    await frame.click("#apply-output");
+    await frame.waitForFunction(() => document.querySelector(".rule:nth-child(4) .output").textContent.includes("JPEG"));
+    console.log("Format comparison opens on demand; Escape discards and Use format saves the selection");
   }
 
   if (!screenshotsOnly) {
@@ -85,9 +97,6 @@ try {
     writeFileSync(`${out}results.json`, JSON.stringify(rows, null, 2));
   }
 
-  const popup = await mount("popup.html", 360, 440);
-  await popup.frame.waitForSelector(".mini-rules li");
-  await popup.page.screenshot({ path: `${out}popup.png` });
 } finally {
   await browser.close();
 }
